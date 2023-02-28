@@ -1,41 +1,37 @@
 #!/usr/bin/env python3
-""" a script that starts a Basic Babel setup """
-
-from flask import request, Flask, render_template
+""" 2. get local from request """
+from flask import Flask, render_template, request
 from flask_babel import Babel
 
+
+class Config:
+    """ Config class for app """
+    LANGUAGES = ["en", "fr"]
+    BABEL_DEFAULT_LOCALE = "en"
+    BABEL_DEFAULT_TIMEZONE = "UTC"
+
+
 app = Flask(__name__)
+app.config.from_object(Config)
+app.url_map.strict_slashes = False
 babel = Babel(app)
-
-
-class Config(object):
-    '''Babel config'''
-    LANGUAGES = ['en', 'fr']
-    BABEL_DEFAULT_LOCALE = 'en'
-    BABEL_DEFAULT_TIMEZONE = 'UTC'
-
-
-app.config.from_object('4-app.Config')
-
-
-@app.route('/', methods=['GET'], strict_slashes=False)
-def hello() -> str:
-    ''' returns a simple page '''
-    return render_template('4-index.html')
 
 
 @babel.localeselector
 def get_locale() -> str:
-    '''determine the best match for supported languages
-       detect if the incoming request contains locale
-    '''
-    if request.args.get('locale'):
-        locale = request.args.get('locale')
-        if locale in app.config['LANGUAGES']:
-            return locale
-    else:
-        return request.accept_languages.best_match(app.config['LANGUAGES'])
+    """ Get locale from request """
+    query_strings = request.query_string.decode('utf-8').split('&')
+    query = {k: v for k, v in [i.split('=') for i in query_strings]}
+    if 'locale' in query and query['locale'] in app.config["LANGUAGES"]:
+        return query['locale']
+    return request.accept_languages.best_match(app.config["LANGUAGES"])
 
 
-if __name__ == "__main__":
+@app.route("/")
+def welcome() -> str:
+    """ / page """
+    return render_template('4-index.html')
+
+
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
